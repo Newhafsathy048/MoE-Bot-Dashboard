@@ -1,0 +1,12 @@
+{
+  "name": "Moe Bot Command Center",
+  "short_name": "Moe Bot",
+  "description": "Moe Bot WhatsApp automation command center",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "icons": [
+    { "src": "/moe-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

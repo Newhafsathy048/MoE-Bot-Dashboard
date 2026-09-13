@@ -36,7 +36,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 const API_BASE = "https://moe-bot-dashboard-7gt1.onrender.com";
-const LOGO = "/manus-storage/moe-cinema-logo_24835f2d.png";
+const LOGO = "/moe-logo.png";
 
 type Tab = "overview" | "connect" | "commands" | "settings";
 type ConnectionState = "online" | "offline" | "connecting";
@@ -113,6 +113,8 @@ export default function Home() {
   const [pairingCode, setPairingCode] = useState("");
   const [pairingBusy, setPairingBusy] = useState(false);
   const [clearingSession, setClearingSession] = useState(false);
+  const [groupCommandsEnabled, setGroupCommandsEnabled] = useState(true);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [commandEnabled, setCommandEnabled] = useState<Record<string, boolean>>(() => {
@@ -150,11 +152,12 @@ export default function Home() {
     try {
       const response = await fetch(`${API_BASE}/api/commands`);
       if (!response.ok) return;
-      const data = await response.json() as { enabledCommands?: Record<string, boolean> };
+      const data = await response.json() as { enabledCommands?: Record<string, boolean>; groupCommandsEnabled?: boolean };
       if (data.enabledCommands) {
         setCommandEnabled(data.enabledCommands);
         localStorage.setItem("moe-command-enabled", JSON.stringify(data.enabledCommands));
       }
+      if (typeof data.groupCommandsEnabled === "boolean") setGroupCommandsEnabled(data.groupCommandsEnabled);
     } catch {
       // Keep local preferences if the bot is temporarily unreachable.
     }
@@ -166,6 +169,15 @@ export default function Home() {
     const interval = window.setInterval(() => void fetchStatus(), 20000);
     return () => window.clearInterval(interval);
   }, [phone]);
+
+  useEffect(() => {
+    const onInstall = (event: Event) => {
+      event.preventDefault?.();
+      setInstallPrompt(event);
+    };
+    window.addEventListener("beforeinstallprompt", onInstall);
+    return () => window.removeEventListener("beforeinstallprompt", onInstall);
+  }, []);
 
   const filteredCommands = useMemo(
     () => commands.filter((item) => `${item.name} ${item.detail}`.toLowerCase().includes(search.toLowerCase())),
@@ -239,6 +251,36 @@ export default function Home() {
     if (!pairingCode) return;
     await navigator.clipboard.writeText(pairingCode);
     toast.success("Pairing code copied");
+  };
+
+  const toggleGroupCommands = async () => {
+    const nextEnabled = !groupCommandsEnabled;
+    if (!phone) {
+      toast.error("Pair your WhatsApp account before changing group commands");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/api/group-commands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: phone, enabled: nextEnabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not update group commands");
+      setGroupCommandsEnabled(nextEnabled);
+      toast.success(`Group commands ${nextEnabled ? "enabled" : "disabled"}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update group commands");
+    }
+  };
+
+  const installApp = async () => {
+    if (installPrompt && "prompt" in installPrompt) {
+      await (installPrompt as Event & { prompt: () => Promise<void> }).prompt();
+      setInstallPrompt(null);
+    } else {
+      toast.success("Use your browser menu and choose Add to Home screen or Install app");
+    }
   };
 
   const toggleCommand = async (name: string) => {
@@ -334,7 +376,7 @@ export default function Home() {
                   <div className="hero-kicker"><Radio size={14} /> WHATSAPP AUTOMATION CORE</div>
                   <h2>Make every message<br /><em>do more.</em></h2>
                   <p>Pair your account, activate your commands, and let Moe Bot handle the repetitive work.</p>
-                  <div className="hero-actions"><button className="primary-button" onClick={() => navigate("connect")}><Smartphone size={17} /> Connect WhatsApp <ChevronRight size={16} /></button><button className="ghost-button" onClick={() => navigate("commands")}>Explore commands</button></div>
+                  <div className="hero-actions"><button className="ghost-button" onClick={() => void installApp()}><Download size={17} /> Download app</button><button className="primary-button" onClick={() => navigate("connect")}><Smartphone size={17} /> Connect WhatsApp <ChevronRight size={16} /></button><button className="ghost-button" onClick={() => navigate("commands")}>Explore commands</button></div>
                 </div>
                 <div className="hero-orbit"><div className="orbit-ring ring-one" /><div className="orbit-ring ring-two" /><div className="hero-logo-wrap"><img src={LOGO} alt="Moe Cinema logo" /><div className="hero-logo-glow" /></div><div className="orbit-chip chip-top"><Wifi size={13} /> {connection === "online" ? "ONLINE" : "READY"}</div><div className="orbit-chip chip-bottom"><Zap size={13} /> FAST RESPONSE</div></div>
               </section>
@@ -365,7 +407,7 @@ export default function Home() {
           )}
 
           {activeTab === "settings" && (
-            <section className="settings-grid"><div className="settings-card profile-card"><div className="profile-row"><img src={LOGO} alt="Moe Bot" /><div><div className="section-kicker">BOT PROFILE</div><h3>Moe Bot</h3><p>WhatsApp automation by MoE</p></div></div><div className="profile-status"><span className="status-dot" /> {connection === "online" ? "Connected and ready" : "Waiting for WhatsApp pair"}</div></div><div className="settings-card"><div className="settings-card-heading"><div><div className="section-kicker">PREFERENCES</div><h3>Service controls</h3></div><Settings2 size={19} /></div><div className="setting-row"><div><strong>Auto-view statuses</strong><span>Mark new statuses as viewed automatically</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Anti-delete recovery</strong><span>Keep deleted-for-everyone messages recoverable</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Group link protection</strong><span>Block unsafe links when enabled in a group</span></div><div className="toggle toggle-on"><span /></div></div></div><div className="settings-card danger-card"><div className="settings-card-heading"><div><div className="section-kicker">MAINTENANCE</div><h3>Session & service</h3></div><AlertTriangle size={19} /></div><p>Clear the paired WhatsApp session from the server, or restart the bot service.</p><div className="danger-actions"><button className="outline-danger" onClick={() => void clearSession()} disabled={clearingSession}><Trash2 size={16} /> {clearingSession ? "Clearing session..." : "Clear WhatsApp session"}</button><button className="outline-danger" onClick={() => void restartBot()}><RefreshCw size={16} /> Restart bot server</button></div></div></section>
+            <section className="settings-grid"><div className="settings-card profile-card"><div className="profile-row"><img src={LOGO} alt="Moe Bot" /><div><div className="section-kicker">BOT PROFILE</div><h3>Moe Bot</h3><p>WhatsApp automation by MoE</p></div></div><div className="profile-status"><span className="status-dot" /> {connection === "online" ? "Connected and ready" : "Waiting for WhatsApp pair"}</div></div><div className="settings-card"><div className="settings-card-heading"><div><div className="section-kicker">PREFERENCES</div><h3>Service controls</h3></div><Settings2 size={19} /></div><div className="setting-row"><div><strong>Auto-view statuses</strong><span>Mark new statuses as viewed automatically</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Anti-delete recovery</strong><span>Keep deleted-for-everyone messages recoverable</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Group commands</strong><span>Allow or block all commands inside WhatsApp groups</span></div><button className={`toggle ${groupCommandsEnabled ? "toggle-on" : "toggle-off"}`} onClick={() => void toggleGroupCommands()} aria-label="Toggle group commands"><span /></button></div></div><div className="settings-card danger-card"><div className="settings-card-heading"><div><div className="section-kicker">MAINTENANCE</div><h3>Session & service</h3></div><AlertTriangle size={19} /></div><p>Clear the paired WhatsApp session from the server, or restart the bot service.</p><div className="danger-actions"><button className="outline-danger" onClick={() => void clearSession()} disabled={clearingSession}><Trash2 size={16} /> {clearingSession ? "Clearing session..." : "Clear WhatsApp session"}</button><button className="outline-danger" onClick={() => void restartBot()}><RefreshCw size={16} /> Restart bot server</button></div></div></section>
           )}
         </div>
       </main>
