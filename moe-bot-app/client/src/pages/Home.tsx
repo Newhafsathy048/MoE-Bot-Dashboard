@@ -112,6 +112,7 @@ export default function Home() {
   const [phone, setPhone] = useState(() => localStorage.getItem("moe-phone") || "");
   const [pairingCode, setPairingCode] = useState("");
   const [pairingBusy, setPairingBusy] = useState(false);
+  const [clearingSession, setClearingSession] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [commandEnabled, setCommandEnabled] = useState<Record<string, boolean>>(() => {
@@ -205,6 +206,32 @@ export default function Home() {
       setConnection("connecting");
     } catch {
       toast.error("Could not send restart request");
+    }
+  };
+
+  const clearSession = async () => {
+    if (!phone) {
+      toast.error("Enter the paired WhatsApp number first");
+      return;
+    }
+    if (!window.confirm("Clear this WhatsApp session? You will need to pair it again.")) return;
+    setClearingSession(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/session/clear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: phone }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not clear session");
+      setPairingCode("");
+      setConnection("offline");
+      toast.success("WhatsApp session cleared. Pair again when ready.");
+      void fetchStatus(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not clear session");
+    } finally {
+      setClearingSession(false);
     }
   };
 
@@ -338,7 +365,7 @@ export default function Home() {
           )}
 
           {activeTab === "settings" && (
-            <section className="settings-grid"><div className="settings-card profile-card"><div className="profile-row"><img src={LOGO} alt="Moe Bot" /><div><div className="section-kicker">BOT PROFILE</div><h3>Moe Bot</h3><p>WhatsApp automation by MoE</p></div></div><div className="profile-status"><span className="status-dot" /> {connection === "online" ? "Connected and ready" : "Waiting for WhatsApp pair"}</div></div><div className="settings-card"><div className="settings-card-heading"><div><div className="section-kicker">PREFERENCES</div><h3>Service controls</h3></div><Settings2 size={19} /></div><div className="setting-row"><div><strong>Auto-view statuses</strong><span>Mark new statuses as viewed automatically</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Anti-delete recovery</strong><span>Keep deleted-for-everyone messages recoverable</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Group link protection</strong><span>Block unsafe links when enabled in a group</span></div><div className="toggle toggle-on"><span /></div></div></div><div className="settings-card danger-card"><div className="settings-card-heading"><div><div className="section-kicker">MAINTENANCE</div><h3>Restart service node</h3></div><AlertTriangle size={19} /></div><p>Use this only when commands or the dashboard need a clean reconnect.</p><button className="outline-danger" onClick={() => void restartBot()}><RefreshCw size={16} /> Restart bot server</button></div></section>
+            <section className="settings-grid"><div className="settings-card profile-card"><div className="profile-row"><img src={LOGO} alt="Moe Bot" /><div><div className="section-kicker">BOT PROFILE</div><h3>Moe Bot</h3><p>WhatsApp automation by MoE</p></div></div><div className="profile-status"><span className="status-dot" /> {connection === "online" ? "Connected and ready" : "Waiting for WhatsApp pair"}</div></div><div className="settings-card"><div className="settings-card-heading"><div><div className="section-kicker">PREFERENCES</div><h3>Service controls</h3></div><Settings2 size={19} /></div><div className="setting-row"><div><strong>Auto-view statuses</strong><span>Mark new statuses as viewed automatically</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Anti-delete recovery</strong><span>Keep deleted-for-everyone messages recoverable</span></div><div className="toggle toggle-on"><span /></div></div><div className="setting-row"><div><strong>Group link protection</strong><span>Block unsafe links when enabled in a group</span></div><div className="toggle toggle-on"><span /></div></div></div><div className="settings-card danger-card"><div className="settings-card-heading"><div><div className="section-kicker">MAINTENANCE</div><h3>Session & service</h3></div><AlertTriangle size={19} /></div><p>Clear the paired WhatsApp session from the server, or restart the bot service.</p><div className="danger-actions"><button className="outline-danger" onClick={() => void clearSession()} disabled={clearingSession}><Trash2 size={16} /> {clearingSession ? "Clearing session..." : "Clear WhatsApp session"}</button><button className="outline-danger" onClick={() => void restartBot()}><RefreshCw size={16} /> Restart bot server</button></div></div></section>
           )}
         </div>
       </main>
