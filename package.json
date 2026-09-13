@@ -4,7 +4,8 @@
   "description": "MoE WhatsApp Bot built on Baileys",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node test_commands.js && node test_new_features.js && node test_autoviewstatus.js"
   },
   "keywords": [
     "whatsapp-bot",
