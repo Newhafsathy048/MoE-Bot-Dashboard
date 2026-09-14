@@ -241,3 +241,5 @@ h1 { color: #f5f6ff; font-family: "Space Grotesk", sans-serif; font-size: clamp(
 .music-dock-heading a { color: #ae95ff; }
 .music-dock iframe { display: block; border-radius: 10px; }
 @media (max-width: 760px) { .music-dock { right: 12px; bottom: 78px; width: min(330px, calc(100vw - 24px)); } }
+.music-play-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; border-radius: 9px; background: linear-gradient(135deg, #1ed760, #16a34a); color: #061108; font-size: 11px; font-weight: 800; text-decoration: none; }
+.music-play-button span { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: rgba(0,0,0,.14); font-size: 9px; }

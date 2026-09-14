@@ -415,7 +415,7 @@ export default function Home() {
 
       <aside className="music-dock" aria-label="Moe Bot music player">
         <div className="music-dock-heading"><div><span className="section-kicker">NOW PLAYING</span><strong>YALA (Slowed)</strong><small>QMIIR · DJ Zarek · Irokz</small></div><a href="https://open.spotify.com/track/0h4kC7ZNJZDEYDlYQTlDoB" target="_blank" rel="noreferrer" aria-label="Open YALA on Spotify"><ExternalLink size={15} /></a></div>
-        <iframe title="YALA (Slowed) by QMIIR, DJ Zarek and Irokz" src="https://open.spotify.com/embed/track/0h4kC7ZNJZDEYDlYQTlDoB?utm_source=generator&theme=0" width="100%" height="80" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager" />
+        <a className="music-play-button" href="https://open.spotify.com/track/0h4kC7ZNJZDEYDlYQTlDoB" target="_blank" rel="noreferrer"><span>▶</span> Play on Spotify</a>
       </aside>
 
       <nav className="bottom-nav" aria-label="Mobile navigation">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? "bottom-nav-active" : ""} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
