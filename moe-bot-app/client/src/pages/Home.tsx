@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -12,7 +12,7 @@ import {
   Copy,
   Download,
   Eye,
-  ExternalLink,
+  Music2,
   FileWarning,
   Link2,
   LockKeyhole,
@@ -38,6 +38,7 @@ import { useLocation } from "wouter";
 
 const API_BASE = "https://moe-bot-dashboard-7gt1.onrender.com";
 const LOGO = "/moe-logo.png";
+const MUSIC = "/YALA-Slowed-QMIIR.mp3";
 
 type Tab = "overview" | "connect" | "commands" | "settings";
 type ConnectionState = "online" | "offline" | "connecting";
@@ -116,6 +117,7 @@ export default function Home() {
   const [clearingSession, setClearingSession] = useState(false);
   const [groupCommandsEnabled, setGroupCommandsEnabled] = useState(true);
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [commandEnabled, setCommandEnabled] = useState<Record<string, boolean>>(() => {
@@ -178,6 +180,21 @@ export default function Home() {
     };
     window.addEventListener("beforeinstallprompt", onInstall);
     return () => window.removeEventListener("beforeinstallprompt", onInstall);
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = 0.35;
+    const tryPlay = () => void audio.play().catch(() => undefined);
+    tryPlay();
+    window.addEventListener("pointerdown", tryPlay, { once: true });
+    window.addEventListener("keydown", tryPlay, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", tryPlay);
+      window.removeEventListener("keydown", tryPlay);
+      audio.pause();
+    };
   }, []);
 
   const filteredCommands = useMemo(
@@ -414,8 +431,8 @@ export default function Home() {
       </main>
 
       <aside className="music-dock" aria-label="Moe Bot music player">
-        <div className="music-dock-heading"><div><span className="section-kicker">NOW PLAYING</span><strong>YALA (Slowed)</strong><small>QMIIR · DJ Zarek · Irokz</small></div><a href="https://open.spotify.com/track/0h4kC7ZNJZDEYDlYQTlDoB" target="_blank" rel="noreferrer" aria-label="Open YALA on Spotify"><ExternalLink size={15} /></a></div>
-        <a className="music-play-button" href="https://open.spotify.com/track/0h4kC7ZNJZDEYDlYQTlDoB" target="_blank" rel="noreferrer"><span>▶</span> Play on Spotify</a>
+        <div className="music-dock-heading"><div><span className="section-kicker">NOW PLAYING</span><strong>YALA (Slowed)</strong><small>QMIIR · DJ Zarek · Irokz</small></div><Music2 size={16} className="music-note" /></div>
+        <audio ref={audioRef} className="music-audio" src={MUSIC} controls autoPlay loop preload="auto" aria-label="YALA (Slowed) audio player" />
       </aside>
 
       <nav className="bottom-nav" aria-label="Mobile navigation">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? "bottom-nav-active" : ""} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
